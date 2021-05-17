@@ -96,6 +96,7 @@ namespace FileStress
 
             Console.WriteLine($"Drive {drive.Name} has {drive.AvailableFreeSpace / (1024L * 1024 * 1024)} GB free. Test will add ca. {estimatedMB / 1024} GB of data.");
 
+            CtrlCHandler.Instance.Register(Save);
 
             Task runner = StartWriting();
             int sleepMs = (int)(myRuntimeMinutes * 60 * 1000);
@@ -111,17 +112,26 @@ namespace FileStress
                 Console.WriteLine($"Got Exception during writing: {ex}");
             }
 
-            List<string> results = myResults.Select((measurement, i) => 
+            Save();
+           
+        }
+
+        void Save()
+        {
+            lock (myResults)
             {
-                return $"{i + 1};{measurement.CompleteTime.ToString(DateTimeFormat)};{measurement.TimeSinceStartIns};{measurement.FileCreateMs / 1000.0f};{measurement.FileWriteMs / 1000.0f};{measurement.FileCloseMs / 1000.0f};{measurement.TotalTimeMs / 1000.0f};{measurement.TotalMBWritten};{measurement.MegaBytesPerSeconds10s:F0};{Path.GetPathRoot(myFolder)};{myWriterThreadCount};{measurement.FileName}";
-            }).ToList();
-            results.Insert(0, $"FileNr;Time;Time since Start in s;Open in s;Write in s;Close in s;Total duration for {myFileSizeInMB} MB file in s;MB Written so far;MB/s Averaged over last 10s;Drive;Threads;FileName");
+                List<string> results = myResults.Select((measurement, i) =>
+                {
+                    return $"{i + 1};{measurement.CompleteTime.ToString(DateTimeFormat)};{measurement.TimeSinceStartIns};{measurement.FileCreateMs / 1000.0f};{measurement.FileWriteMs / 1000.0f};{measurement.FileCloseMs / 1000.0f};{measurement.TotalTimeMs / 1000.0f};{measurement.TotalMBWritten};{measurement.MegaBytesPerSeconds10s:F0};{Path.GetPathRoot(myFolder)};{myWriterThreadCount};{measurement.FileName}";
+                }).ToList();
+                results.Insert(0, $"FileNr;Time;Time since Start in s;Open in s;Write in s;Close in s;Total duration for {myFileSizeInMB} MB file in s;MB Written so far;MB/s Averaged over last 10s;Drive;Threads;FileName");
 
-            string timeStamp = DateTime.Now.ToString("HH_mm_ss");
+                string timeStamp = DateTime.Now.ToString("HH_mm_ss");
 
-            string detailsFileName = Path.Combine(Path.GetPathRoot(myFolder), $"Througput_{Environment.MachineName}_{myFileSizeInMB:F0}MB_{myRuntimeMinutes}minutes_{timeStamp}.csv");
-            Console.WriteLine($"Details can be found in file {detailsFileName}");
-            File.WriteAllLines(detailsFileName, results);
+                string detailsFileName = Path.Combine(Path.GetPathRoot(myFolder), $"Througput_{Environment.MachineName}_{myFileSizeInMB:F0}MB_{myRuntimeMinutes}minutes_{timeStamp}.csv");
+                Console.WriteLine($"Details can be found in file {detailsFileName}");
+                File.WriteAllLines(detailsFileName, results);
+            }
         }
 
         private Task StartWriting()
