@@ -132,7 +132,6 @@ namespace FileStress
 
                 sw.Stop();
                 Console.WriteLine($"Did write {chunk.Count} files in {sw.Elapsed.TotalMilliseconds:F0} ms");
-                Thread.Sleep(5500);
             }
             else
             {
