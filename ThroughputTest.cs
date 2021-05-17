@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace FileStress
 {
-    class ThrougputTest
+    class ThroughputTest
     {
         class Measurement
         {
@@ -64,9 +64,11 @@ namespace FileStress
         internal const string DateTimeFormat = "yyyy-MM-dd HH:mm:ss.fff";
 
         Action myFileDeletion;
+        bool myFileDeletionCalled = false;
 
 
-        public ThrougputTest(string outputFolder, float runTimeMinutes, float fileSizeInMB, int nThreads, bool randomData, Action fileDeletion)
+
+        public ThroughputTest(string outputFolder, float runTimeMinutes, float fileSizeInMB, int nThreads, bool randomData, Action fileDeletion)
         {
             myRuntimeMinutes = runTimeMinutes;
             myFileSizeInMB = fileSizeInMB;
@@ -137,10 +139,18 @@ namespace FileStress
 
         void MBPerSecondWriter()
         {
+            long prevMB = 0;
+
             while(!myToken.IsCancellationRequested)
             {
                 Thread.Sleep(10_000);
-                long prevMB = Interlocked.Exchange(ref myPreviousMBWritten, myTotalMBWritten);
+                if(myFileDeletionCalled)
+                {
+                    myFileDeletionCalled = false;
+                    prevMB = Interlocked.Exchange(ref myPreviousMBWritten, myTotalMBWritten);
+                    continue;
+                }
+                prevMB = Interlocked.Exchange(ref myPreviousMBWritten, myTotalMBWritten);
                 myMegaBytesPerSeconds10s = (myTotalMBWritten - prevMB) / 10;
             }
         }
@@ -204,14 +214,14 @@ namespace FileStress
                             MegaBytesPerSeconds10s = myMegaBytesPerSeconds10s,
                             TotalMBWritten =  Interlocked.Add(ref myTotalMBWritten, (long)myFileSizeInMB),
                             FileName  = fileName
-                        }
-                       );
+                        });
                     }
                     Console.WriteLine($"Open: {(int)fileCreateMs,3} ms, Close: {(int)(totalMs-fileWriteMs),3} ms, Write: {(int) (fileWriteMs-fileCreateMs),3} ms, Last 10s {myMegaBytesPerSeconds10s,-4} MB/s");
                 }
                 catch (IOException ex) when ((ex.HResult & 0xFFFF) == 0x27 || (ex.HResult & 0xFFFF) == 0x70)
                 {
                     Console.WriteLine("Disk full. Deleting old data.");
+                    myFileDeletionCalled = true;
                     myFileDeletion?.Invoke();
 
                 }

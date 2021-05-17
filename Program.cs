@@ -191,7 +191,7 @@ namespace FileStress
                         filePerf.TestFileCreationPerformance(outputFolder, 20_000, 0, false);
                         break;
                     case Mode.Throughput:
-                        var test = new ThrougputTest(outputFolder, nMinuteRuntime, fileSizeMB, nThreads, randomData, CleanFilesOnExit);
+                        var test = new ThroughputTest(outputFolder, nMinuteRuntime, fileSizeMB, nThreads, randomData, CleanFilesOnExit);
                         test.Run();
                         break;
                     default:
