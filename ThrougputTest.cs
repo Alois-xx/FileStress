@@ -63,7 +63,10 @@ namespace FileStress
 
         internal const string DateTimeFormat = "yyyy-MM-dd HH:mm:ss.fff";
 
-        public ThrougputTest(string outputFolder, float runTimeMinutes, float fileSizeInMB, int nThreads, bool randomData)
+        Action myFileDeletion;
+
+
+        public ThrougputTest(string outputFolder, float runTimeMinutes, float fileSizeInMB, int nThreads, bool randomData, Action fileDeletion)
         {
             myRuntimeMinutes = runTimeMinutes;
             myFileSizeInMB = fileSizeInMB;
@@ -71,6 +74,7 @@ namespace FileStress
             myFolder = outputFolder;
             myUseRandomData = randomData;
             myWriteBuffer = new byte[(int)(myFileSizeInMB * 1024 * 1024)];
+            myFileDeletion = fileDeletion;
         }
 
         public void Run()
@@ -87,12 +91,6 @@ namespace FileStress
             long estimatedMB = (long) (myRuntimeMinutes * 100 * 60);
 
             long diff = drive.AvailableFreeSpace - estimatedMB * 1024 * 1024;
-
-            if ( diff < 0)
-            {
-                Console.WriteLine($"Error: Estimated that the drive would be full before the test can complete with a 100 MB/s write performance. Please make at least {diff / 1024 * 1024} MB free.");
-                return;
-            }
 
             Console.WriteLine($"Drive {drive.Name} has {drive.AvailableFreeSpace / (1024L * 1024 * 1024)} GB free. Test will add ca. {estimatedMB / 1024} GB of data.");
 
@@ -211,7 +209,13 @@ namespace FileStress
                     }
                     Console.WriteLine($"Open: {(int)fileCreateMs,3} ms, Close: {(int)(totalMs-fileWriteMs),3} ms, Write: {(int) (fileWriteMs-fileCreateMs),3} ms, Last 10s {myMegaBytesPerSeconds10s,-4} MB/s");
                 }
-                catch(IOException ex)
+                catch (IOException ex) when ((ex.HResult & 0xFFFF) == 0x27 || (ex.HResult & 0xFFFF) == 0x70)
+                {
+                    Console.WriteLine("Disk full. Deleting old data.");
+                    myFileDeletion?.Invoke();
+
+                }
+                catch (IOException ex)
                 {
                     exceptionCount++;
                     Console.WriteLine($"Got IO Exception: {ex}. We retry again.");
