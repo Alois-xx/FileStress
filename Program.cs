@@ -77,6 +77,13 @@ namespace FileStress
                             catch (Exception)
                             { }
                         }
+
+                        try
+                        {
+                            Directory.Delete(outputFolder);
+                        }
+                        catch (Exception)
+                        { }
                     }
 
                 }
