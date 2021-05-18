@@ -94,13 +94,13 @@ namespace FileStress
 
             long diff = drive.AvailableFreeSpace - estimatedMB * 1024 * 1024;
 
-            Console.WriteLine($"Drive {drive.Name} has {drive.AvailableFreeSpace / (1024L * 1024 * 1024)} GB free. Test will add ca. {estimatedMB / 1024} GB of data.");
+            Console.WriteLine($"Drive {drive.Name} has {drive.AvailableFreeSpace / (1024L * 1024 * 1024)} GB free.");
 
             CtrlCHandler.Instance.Register(Save);
 
             Task runner = StartWriting();
             int sleepMs = (int)(myRuntimeMinutes * 60 * 1000);
-            Console.WriteLine($"Sleep for {sleepMs}ms");
+            Console.WriteLine($"Test will run for {myRuntimeMinutes} minutes");
             Thread.Sleep(sleepMs);
             source.Cancel();
             try
