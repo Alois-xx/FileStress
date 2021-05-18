@@ -34,7 +34,7 @@ Cleaning 1067 temp files from c:\TempFilePerformanceTest
 The resulting CSV File can be used to plot Average throughput over time to check if the drive has some issues with keeping a specific data rate for a longer time.
 Below is a consumer SSD which has according to CrystalDiskMark this performance
 
-![Crystal Disk Mark Perf](doc/Crystaldiskmark.png)
+![Crystal Disk Mark Perf](doc/CrystaldiskMark.png)
 
 If we look at the FileStress generated CSV data which was writing for 2 hours we arrive at 90 MB/s sustained write performance which is far off the 480 MB/s reported by CrystalDiskMark.
 Although we did repeat the test 9 times with a 64 GiB file CrystalDiskmark shows not the sustained write rate!
