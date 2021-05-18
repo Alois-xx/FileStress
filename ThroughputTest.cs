@@ -64,7 +64,7 @@ namespace FileStress
         internal const string DateTimeFormat = "yyyy-MM-dd HH:mm:ss.fff";
 
         Action myFileDeletion;
-        bool myFileDeletionCalled = false;
+        bool myFileDeletionRunning = false;
 
 
 
@@ -154,13 +154,12 @@ namespace FileStress
             while(!myToken.IsCancellationRequested)
             {
                 Thread.Sleep(10_000);
-                if(myFileDeletionCalled)
+                prevMB = Interlocked.Exchange(ref myPreviousMBWritten, myTotalMBWritten);
+                if (myFileDeletionRunning) // ignore measured values while file deletion is running and do not update the myMegaBytesPerSeconds10s value
                 {
-                    myFileDeletionCalled = false;
-                    prevMB = Interlocked.Exchange(ref myPreviousMBWritten, myTotalMBWritten);
                     continue;
                 }
-                prevMB = Interlocked.Exchange(ref myPreviousMBWritten, myTotalMBWritten);
+
                 myMegaBytesPerSeconds10s = (myTotalMBWritten - prevMB) / 10;
             }
         }
@@ -231,9 +230,15 @@ namespace FileStress
                 catch (IOException ex) when ((ex.HResult & 0xFFFF) == 0x27 || (ex.HResult & 0xFFFF) == 0x70)
                 {
                     Console.WriteLine("Disk full. Deleting old data.");
-                    myFileDeletionCalled = true;
-                    myFileDeletion?.Invoke();
-
+                    try
+                    {
+                        myFileDeletionRunning = true;
+                        myFileDeletion?.Invoke();
+                    }
+                    finally
+                    { 
+                        myFileDeletionRunning = false;
+                    }
                 }
                 catch (IOException ex)
                 {

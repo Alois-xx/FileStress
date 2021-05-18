@@ -10,21 +10,25 @@ namespace FileStress
     {
         const int DefaultSizeSizeMB = 10;
 
-        static readonly string HelpStr = $"FileStress {FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion}" + Environment.NewLine +
-            " FileStress [-throughput dd [-keepFiles] [-nthreads nn] [-filesizemb dd] [-norandom]] [ -map [dd] [-nounmap] [-filesizemb dd] [-keepFiles] ] [ -filecreate [-keepFiles]] [-touchgb dd] [-committgb dd] [c:] [d:] [e:] [f:]..." + Environment.NewLine +
+        static readonly string HelpStr = 
+           $"FileStress v{FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion}" + Environment.NewLine +
+            " FileStress [-throughput dd [-keepFiles] [-nthreads nn] [-filesizemb dd] [-norandom]] [-map [dd] [-nounmap] [-filesizemb dd] [-keepFiles]] [-filecreate [-keepFiles]] [-touchgb dd] [-committgb dd] [c:] [d:] [e:] [f:]..." + Environment.NewLine +
            $"  -throughput dd    Test drive thoughput for dd minutes by writing {DefaultSizeSizeMB} MB files from two threads to \\{FolderName}." + Environment.NewLine +
             "              dd    dd is the runtime of the test in minutes. If the disk becomes full during the test it will delete the generated files and continue until the configured runtime is reached." + Environment.NewLine + 
-            "                    You can also use fractions of minutes to test a short run. E.g. 0.1" + Environment.NewLine + 
+            "                    You can also use fractions of minutes to test a short run. E.g. -throughput 0.1" + Environment.NewLine + 
             "     -nthreads n    Number of concurrent writes. Default is 2" + Environment.NewLine +
            $"     -filesizemb n  Size of file to be written. Default is {DefaultSizeSizeMB}" + Environment.NewLine +
             "     -norandom      By default random data is written to the files. Otherwise a simple pattern with A is written to the files" + Environment.NewLine +
-            " -keepFiles         Do not deleted created temporary files on exit" + Environment.NewLine +
-            " -touchgb   dd      Commit and touch dd GB of memory before other tests start" + Environment.NewLine + 
-            " -committgb dd      Commit but do not touch memory before other tests start" + Environment.NewLine + 
-            " -waitforenter      Wait for an enter press before exiting. That way you can create several GB sized allocations which can be released later interactivey from the shell." + Environment.NewLine +
-           $" -map               Create with a rate of dd files/s memory maps and save the {DefaultSizeSizeMB} MB files to \\{FolderName} folder. Default is the C drive" + Environment.NewLine +
+            "     -keepFiles     Do not deleted created temporary files on exit" + Environment.NewLine +
+           $" -map [dd]          Create with a rate of dd files/s memory maps and save the files to \\{FolderName} folder. Default is the C drive" + Environment.NewLine +
+           $"     -filesizemb n  Size of file to be written. Default is {DefaultSizeSizeMB}" + Environment.NewLine +
             "     -nounmap       Do not unmap the data until it is written to keep the data in the current process working set" + Environment.NewLine +
+            "     -keepFiles     Do not deleted created temporary files on exit" + Environment.NewLine +
            $"  -filecreate       File Creation Test which will create 20K files in the folder \\{FolderName} on the target drive" + Environment.NewLine +
+            "     -keepFiles     Do not deleted created temporary files on exit. This way you can test e.g. NTFS Directory traversal performance with hundreds of thousands of files with subsequent calls." + Environment.NewLine +
+            " -touchgb   dd      Commit and touch dd GB of memory before other tests start" + Environment.NewLine +
+            " -committgb dd      Commit but do not touch memory before other tests start" + Environment.NewLine +
+            " -waitforenter      Wait for an enter press before exiting. That way you can create several GB sized allocations which can be released later interactivly from the shell." + Environment.NewLine +
             "Examples" + Environment.NewLine + 
             "Allocate 10 GB of memory to put system under memory stress" + Environment.NewLine +
             "  FileStress -touchgb 10 -waitforenter" + Environment.NewLine + 
