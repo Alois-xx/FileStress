@@ -20,7 +20,7 @@ namespace FileStress
            $"     -filesizemb n  Size of file to be written. Default is {DefaultSizeSizeMB}" + Environment.NewLine +
             "     -norandom      By default random data is written to the files. Otherwise a simple pattern with A is written to the files" + Environment.NewLine +
             "     -keepFiles     Do not deleted created temporary files on exit" + Environment.NewLine +
-           $"  -map [dd]          Create with a rate of dd files/s memory maps and save the files to \\{FolderName} folder. Default is the C drive" + Environment.NewLine +
+           $"  -map [dd]         Create with a rate of dd files/s memory maps and save the files to \\{FolderName} folder. Default is the C drive" + Environment.NewLine +
            $"     -filesizemb n  Size of file to be written. Default is {DefaultSizeSizeMB}" + Environment.NewLine +
             "     -nounmap       Do not unmap the data until it is written to keep the data in the current process working set" + Environment.NewLine +
             "     -keepFiles     Do not deleted created temporary files on exit" + Environment.NewLine +
