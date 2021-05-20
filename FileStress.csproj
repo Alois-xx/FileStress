@@ -51,6 +51,7 @@
     <Compile Include="Allocator.cs" />
     <Compile Include="CtrlCHandler.cs" />
     <Compile Include="FileCreationPerformance.cs" />
+    <Compile Include="FSCacheFlush.cs" />
     <Compile Include="MappedWriter.cs" />
     <Compile Include="MappedWriterBase.cs" />
     <Compile Include="Program.cs" />
