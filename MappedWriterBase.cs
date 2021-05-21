@@ -27,6 +27,10 @@ namespace FileStress
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern unsafe bool WriteFile(SafeFileHandle handle, IntPtr buffer, uint numBytesToRead, out uint numBytesRead, NativeOverlapped* overlapped);
 
+        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern unsafe bool VirtualUnlock(IntPtr buffer, ulong size);
+
         public MappedWriterBase(int fileSizeInMB, string outputFolder, bool noUnmap)
         {
             myUnmap = !noUnmap;

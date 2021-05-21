@@ -25,6 +25,7 @@ namespace FileStress
            $"  -map [dd]         Create with a rate of dd files/s memory maps and save the files to \\{FolderName} folder. Default is the C drive" + Environment.NewLine +
            $"     -filesizemb n  Size of file to be written. Default is {DefaultSizeSizeMB}" + Environment.NewLine +
             "     -nounmap       Do not unmap the data until it is written to keep the data in the current process working set" + Environment.NewLine +
+            "     -unlock        When used with -nounmap it will call VirtualUnlock on the memory maps to remove the data from the working set" + Environment.NewLine + 
             "     -keepFiles     Do not deleted created temporary files on exit" + Environment.NewLine +
             "  -flush fileOrDir  Flush file system cache for a file or all files in a folder" + Environment.NewLine +
             "      -recursive    If used then all files below that directory file also be flushed" + Environment.NewLine +
@@ -62,6 +63,7 @@ namespace FileStress
         {
             int nFilesPerSecond = 30;
             bool noUnmap = false;
+            bool unlock = false;
             Mode mode = Mode.Help;
             string drive = "C:";
             int nThreads = 2;
@@ -76,6 +78,7 @@ namespace FileStress
             string readDir = null;
             string flushFileFolder = null;
             bool recursive = false;
+
 
 
             void CleanFilesOnExit()
@@ -131,6 +134,9 @@ namespace FileStress
                         break;
                     case "-nounmap":
                         noUnmap = true;
+                        break;
+                    case "-unlock":
+                        unlock = true;
                         break;
                     case "-throughput":
                         mode = Mode.Throughput;
@@ -199,6 +205,7 @@ namespace FileStress
                 }
             }
 
+            outputFolder = $"{drive}\\{FolderName}";
 
             try
             {
@@ -224,7 +231,7 @@ namespace FileStress
                         Help();
                         break;
                     case Mode.Mapping:
-                        MappedWriterBase writer = new MappedWriter((int)fileSizeMB, outputFolder, noUnmap);
+                        MappedWriterBase writer = new MappedWriter((int)fileSizeMB, outputFolder, noUnmap, unlock);
                         writer.StartGeneration(nFilesPerSecond);
                         writer.Write();
                         CleanFilesOnExit();

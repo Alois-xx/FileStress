@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.IO.MemoryMappedFiles;
+using System.Runtime.InteropServices;
 using System.Threading;
 
 namespace FileStress
@@ -12,8 +13,12 @@ namespace FileStress
     {
         readonly Queue<Tuple<MemoryMappedFile, SafeMemoryMappedViewHandle, string>> myQueue = new();
 
-        public MappedWriter(int fileSizeInMB, string drive, bool noUnmap):base(fileSizeInMB, drive, noUnmap)
+        bool myUnlock = false;
+
+
+        public MappedWriter(int fileSizeInMB, string drive, bool noUnmap, bool unlock) :base(fileSizeInMB, drive, noUnmap)
         {
+            myUnlock = unlock;
         }
 
         unsafe void ModifyMap(MemoryMappedFile file)
@@ -56,8 +61,22 @@ namespace FileStress
             {
                 handle.ReleasePointer();
             }
+            if( myUnlock )
+            {
+                bool unlockRes = VirtualUnlock(new IntPtr(lPtr), myFileSizeInBytes);
+                if( unlockRes == false)
+                {
+                    int lastError = Marshal.GetLastWin32Error();
+                    if( lastError != ERROR_NOT_LOCKED)
+                    {
+                        Console.WriteLine("Unlock failed with {0}", lastError );
+                    }
+                    
+                }
+            }
         }
 
+        const int ERROR_NOT_LOCKED = 0x9e;
 
 
         private unsafe void ModifyMaps()
@@ -68,7 +87,6 @@ namespace FileStress
                 Console.WriteLine($"Modify {arr.Length} Maps]");
                 for (int i = 0; i < arr.Length; i++)
                 {
-
                     ModifyMap(arr[i].Item1);
                 }
             }
