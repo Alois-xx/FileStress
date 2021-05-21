@@ -12,7 +12,7 @@ namespace FileStress
 
         static readonly string HelpStr =
            $"FileStress v{FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion}" + Environment.NewLine +
-            " FileStress [-throughput dd [-keepFiles] [-nthreads nn] [-filesizemb dd] [-norandom]] [-map [dd] [-nounmap] [-filesizemb dd] [-keepFiles]] [-flush fileorDir [-recursive]] [-filecreate [-keepFiles]] [-touchgb dd] [-committgb dd] [c:] [d:] [e:] [f:]..." + Environment.NewLine +
+            " FileStress [-throughput dd [-keepFiles] [-nthreads nn] [-filesizemb dd] [-norandom]] [-readperf -readdir xxxx]] [-map [dd] [-nounmap] [-filesizemb dd] [-keepFiles]] [-flush fileorDir [-recursive]] [-filecreate [-keepFiles]] [-touchgb dd] [-committgb dd] [c:] [d:] [e:] [f:]..." + Environment.NewLine +
            $"  -throughput dd    Test drive thoughput for dd minutes by writing {DefaultSizeSizeMB} MB files from two threads to \\{FolderName}." + Environment.NewLine +
             "              dd    dd is the runtime of the test in minutes. If the disk becomes full during the test it will delete the generated files and continue until the configured runtime is reached." + Environment.NewLine +
             "                    You can also use fractions of minutes to test a short run. E.g. -throughput 0.1" + Environment.NewLine +
@@ -20,6 +20,8 @@ namespace FileStress
            $"     -filesizemb n  Size of file to be written. Default is {DefaultSizeSizeMB}" + Environment.NewLine +
             "     -norandom      By default random data is written to the files. Otherwise a simple pattern with A is written to the files" + Environment.NewLine +
             "     -keepFiles     Do not deleted created temporary files on exit" + Environment.NewLine +
+            "  -readperf         Execute a read performance test with one thread and print total average read performance at each GB along with the current file which is read." + Environment.NewLine + 
+            "     -readdir xxx   Directory from where the files are read from" + Environment.NewLine + 
            $"  -map [dd]         Create with a rate of dd files/s memory maps and save the files to \\{FolderName} folder. Default is the C drive" + Environment.NewLine +
            $"     -filesizemb n  Size of file to be written. Default is {DefaultSizeSizeMB}" + Environment.NewLine +
             "     -nounmap       Do not unmap the data until it is written to keep the data in the current process working set" + Environment.NewLine +
@@ -51,6 +53,7 @@ namespace FileStress
             Throughput,
             Allocate,
             Flush,
+            ReadPerf,
         }
 
         const string FolderName = "TempFilePerformanceTest";
@@ -70,7 +73,7 @@ namespace FileStress
             float nMinuteRuntime = 1;
             bool deleteTempFilesOnExit = true;
             string outputFolder = null;
-
+            string readDir = null;
             string flushFileFolder = null;
             bool recursive = false;
 
@@ -132,6 +135,12 @@ namespace FileStress
                     case "-throughput":
                         mode = Mode.Throughput;
                         nMinuteRuntime = NextArgumentOrDefault(qargs, 5.0f);
+                        break;
+                    case "-readperf":
+                        mode = Mode.ReadPerf;
+                        break;
+                    case "-readdir":
+                        readDir = NextArgumentOrDefault(qargs, (string) null);
                         break;
                     case "-nthreads":
                         nThreads = NextArgumentOrDefault(qargs, 2);
@@ -203,7 +212,7 @@ namespace FileStress
                     allocator.AllocateMemory(GB, touchMemory);
                 }
 
-                outputFolder = $"{drive}\\{FolderName}";
+              
 
 
                 switch (mode)
@@ -229,6 +238,15 @@ namespace FileStress
                         var test = new ThroughputTest(outputFolder, nMinuteRuntime, fileSizeMB, nThreads, randomData, CleanFilesOnExit);
                         test.Run();
                         CleanFilesOnExit();
+                        break;
+                    case Mode.ReadPerf:
+                        if (readDir == null)
+                        {
+                            Console.WriteLine("You need to add -readdir xxxx to read files from a directory.");
+                            return;
+                        }
+                        var readPerfTest = new ReadPerf(readDir, 0xffff);
+                        readPerfTest.Run();
                         break;
                     case Mode.Flush:
                         FSCacheFlush flusher = new FSCacheFlush(flushFileFolder, recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);

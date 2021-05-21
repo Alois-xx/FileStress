@@ -46,6 +46,7 @@ namespace FileStress
             using (var file = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096, FileFlagNoBuffering))
             {
                 // Just open close the file to flush file system cache with FileFlagNoBuffering
+                Console.WriteLine($"Flushing {fileName}");
             }
 
         }
