@@ -13,6 +13,7 @@ namespace FileStress
         protected readonly bool myUnmap;
         protected readonly string myOutputFolder;
         protected readonly uint myFileSizeInBytes;
+        protected readonly bool mybWrite;
 
         /// <summary>
         /// Win32 API for native file writing
@@ -31,11 +32,12 @@ namespace FileStress
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern unsafe bool VirtualUnlock(IntPtr buffer, ulong size);
 
-        public MappedWriterBase(int fileSizeInMB, string outputFolder, bool noUnmap)
+        public MappedWriterBase(int fileSizeInMB, string outputFolder, bool noUnmap, bool bWrite)
         {
             myUnmap = !noUnmap;
             myOutputFolder = outputFolder;
             myFileSizeInBytes = (uint)fileSizeInMB * 1024 * 1024;
+            mybWrite = bWrite;
         }
 
         public virtual void StartGeneration(int nFilesPerSecond)
@@ -71,9 +73,17 @@ namespace FileStress
             Directory.CreateDirectory(myOutputFolder);
             Random rand = new();
 
-            while (true)
+            if (mybWrite)
             {
-                WriteMemorMapToFile(myOutputFolder, rand);
+                while (true)
+                {
+                    WriteMemorMapToFile(myOutputFolder, rand);
+                }
+            }
+            else
+            {
+                // when we skip writing we block indefinitely to simulate a growing memory leak
+                Thread.Sleep(Timeout.Infinite);
             }
         }
 

@@ -12,13 +12,16 @@ namespace FileStress
     internal class MappedWriter : MappedWriterBase
     {
         readonly Queue<Tuple<MemoryMappedFile, SafeMemoryMappedViewHandle, string>> myQueue = new();
+        readonly bool myUnlock = false;
+        byte[] myRandomData = null;
+        const int ERROR_NOT_LOCKED = 0x9e;
+        ulong myCount = 1;
 
-        bool myUnlock = false;
 
-
-        public MappedWriter(int fileSizeInMB, string drive, bool noUnmap, bool unlock) :base(fileSizeInMB, drive, noUnmap)
+        public MappedWriter(int fileSizeInMB, string drive, bool noUnmap, bool unlock, bool bWrite) :base(fileSizeInMB, drive, noUnmap, bWrite)
         {
             myUnlock = unlock;
+            
         }
 
         unsafe void ModifyMap(MemoryMappedFile file)
@@ -39,6 +42,10 @@ namespace FileStress
 
         protected override unsafe void CreateMemoryMap(ref int counter, Random rand)
         {
+            if(myRandomData == null)
+            {
+                myRandomData = CreateRandomData(myFileSizeInBytes, rand);
+            }
             string fileMappingName = $"File Mapping {rand.Next()}{rand.Next()}{rand.Next()}";
             MemoryMappedFile file = MemoryMappedFile.CreateNew(fileMappingName, myFileSizeInBytes);
             byte* ptr = null;
@@ -46,10 +53,19 @@ namespace FileStress
             var handle = accessor.SafeMemoryMappedViewHandle;
             handle.AcquirePointer(ref ptr);
             ulong* lPtr = (ulong*)ptr;
-            for (int i = 0; i < myFileSizeInBytes; i += 512)
+            myCount++;
+
+            fixed (byte* pbRandom = &myRandomData[0])
             {
-                ulong value = ((ulong)rand.Next()) << 32 | (uint)rand.Next();
-                *((ulong*)((byte*)lPtr + i)) = value;
+                ulong* pRandom = (ulong*)pbRandom;
+                for (int i = 0; i < myFileSizeInBytes / 8; i++)
+                {
+                    ulong value = *(pRandom + i) ^ *(pRandom+myCount);  // xor with other random location from random array to get ever changing random data
+                                                                        // If we simply store 0s then memory compression will get much less work to do and we 
+                                                                        // get only occasional page file writes. With non compressible not repeated random data
+                                                                        // we should see page file writes with the same rate as we create images in the page file
+                    *(lPtr + i) = value;
+                }
             }
             lock (myQueue)
             {
@@ -76,7 +92,13 @@ namespace FileStress
             }
         }
 
-        const int ERROR_NOT_LOCKED = 0x9e;
+        static private byte[] CreateRandomData(uint size, Random rand)
+        {
+            byte[] buffer = new byte[size];
+            rand.NextBytes(buffer);
+            return buffer;
+        }
+
 
 
         private unsafe void ModifyMaps()

@@ -9,7 +9,7 @@ namespace FileStress
 {
     class FSCacheFlush
     {
-        List<string> myFiles = new List<string>();
+        readonly List<string> myFiles = new();
 
         public FSCacheFlush(string fileOrDirectory) : this(fileOrDirectory, SearchOption.TopDirectoryOnly)
         { }

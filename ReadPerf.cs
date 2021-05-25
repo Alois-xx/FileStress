@@ -10,10 +10,9 @@ namespace FileStress
 {
     class ReadPerf
     {
-        List<FileStream> myFiles = new List<FileStream>();
-
-        byte[] myBuffer;
-        int myReadBufferSizeInBytes;
+        readonly List<FileStream> myFiles = new();
+        readonly byte[] myBuffer;
+        readonly int myReadBufferSizeInBytes;
 
         public ReadPerf(string directory, int bufferSizeKB)
         {

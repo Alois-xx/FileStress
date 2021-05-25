@@ -62,8 +62,7 @@ namespace FileStress
         DateTime myStartWritingTime;
 
         internal const string DateTimeFormat = "yyyy-MM-dd HH:mm:ss.fff";
-
-        Action myFileDeletion;
+        readonly Action myFileDeletion;
         bool myFileDeletionRunning = false;
 
 

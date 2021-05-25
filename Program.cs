@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
+using System.Threading;
 
 namespace FileStress
 {
@@ -12,7 +13,7 @@ namespace FileStress
 
         static readonly string HelpStr =
            $"FileStress v{FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion}" + Environment.NewLine +
-            " FileStress [-throughput dd [-keepFiles] [-nthreads nn] [-filesizemb dd] [-norandom]] [-readperf -readdir xxxx]] [-map [dd] [-nounmap] [-filesizemb dd] [-keepFiles]] [-flush fileorDir [-recursive]] [-filecreate [-keepFiles]] [-touchgb dd] [-committgb dd] [c:] [d:] [e:] [f:]..." + Environment.NewLine +
+            " FileStress [-throughput dd [-keepFiles] [-nthreads nn] [-filesizemb dd] [-norandom]] [-readperf -readdir xxxx]] [-map [dd] [-nounmap] [-unlock] [-nowrite] [-filesizemb dd] [-keepFiles]] [-flush fileorDir [-recursive]] [-filecreate [-keepFiles]] [-touchgb dd] [-committgb dd] [c:] [d:] [e:] [f:]..." + Environment.NewLine +
            $"  -throughput dd    Test drive thoughput for dd minutes by writing {DefaultSizeSizeMB} MB files from two threads to \\{FolderName}." + Environment.NewLine +
             "              dd    dd is the runtime of the test in minutes. If the disk becomes full during the test it will delete the generated files and continue until the configured runtime is reached." + Environment.NewLine +
             "                    You can also use fractions of minutes to test a short run. E.g. -throughput 0.1" + Environment.NewLine +
@@ -22,11 +23,12 @@ namespace FileStress
             "     -keepFiles     Do not deleted created temporary files on exit" + Environment.NewLine +
             "  -readperf         Execute a read performance test with one thread and print total average read performance at each GB along with the current file which is read." + Environment.NewLine + 
             "     -readdir xxx   Directory from where the files are read from" + Environment.NewLine + 
-           $"  -map [dd]         Create with a rate of dd files/s memory maps and save the files to \\{FolderName} folder. Default is the C drive" + Environment.NewLine +
-           $"     -filesizemb n  Size of file to be written. Default is {DefaultSizeSizeMB}" + Environment.NewLine +
+           $"  -map [dd]         Create with a rate of dd files/s page file allocated memory maps and save the files to \\{FolderName} folder. Default is the C drive" + Environment.NewLine +
+           $"     -filesizemb n  Size of a single memory map. Default is {DefaultSizeSizeMB} MB" + Environment.NewLine +
             "     -nounmap       Do not unmap the data until it is written to keep the data in the current process working set" + Environment.NewLine +
             "     -unlock        When used with -nounmap it will call VirtualUnlock on the memory maps to remove the data from the working set" + Environment.NewLine + 
-            "     -keepFiles     Do not deleted created temporary files on exit" + Environment.NewLine +
+            "     -nowrite       Do not write page file allocated data to files simulating a memory mapped file leak" + Environment.NewLine + 
+            "     -keepFiles     Do not delete temporary files on exit" + Environment.NewLine +
             "  -flush fileOrDir  Flush file system cache for a file or all files in a folder" + Environment.NewLine +
             "      -recursive    If used then all files below that directory file also be flushed" + Environment.NewLine +
            $"  -filecreate       File Creation Test which will create 20K files in the folder \\{FolderName} on the target drive" + Environment.NewLine +
@@ -61,25 +63,37 @@ namespace FileStress
 
         unsafe static void Main(string[] args)
         {
+            Mode mode = Mode.Help;
+
+            // Mapped Writer
             int nFilesPerSecond = 30;
             bool noUnmap = false;
             bool unlock = false;
-            Mode mode = Mode.Help;
-            string drive = "C:";
-            int nThreads = 2;
+
+            // MappedWriter/Throughput
             float fileSizeMB = DefaultSizeSizeMB;
-            bool randomData = true;
-            bool touchMemory = false;
-            int GB = 0;
-            bool waitForExit = false;
-            float nMinuteRuntime = 1;
-            bool deleteTempFilesOnExit = true;
+
+            // Used by Mapped Writer/Throughput/FileCreation
+            string drive = "C:";
             string outputFolder = null;
+            bool bWrite = true;
+
+            // Throughput 
+            bool randomData = true;
+            float nMinuteRuntime = 1;
+            int nThreads = 2;
+
+            // ReadPerf
             string readDir = null;
             string flushFileFolder = null;
             bool recursive = false;
 
-
+            // General
+            int GB = 0;
+            bool touchMemory = false;
+            bool waitForExit = false;
+            bool deleteTempFilesOnExit = true;
+            
 
             void CleanFilesOnExit()
             {
@@ -137,6 +151,9 @@ namespace FileStress
                         break;
                     case "-unlock":
                         unlock = true;
+                        break;
+                    case "-nowrite":
+                        bWrite = false;
                         break;
                     case "-throughput":
                         mode = Mode.Throughput;
@@ -215,7 +232,7 @@ namespace FileStress
                     {
                         mode = Mode.Allocate;
                     }
-                    Allocator allocator = new Allocator();
+                    Allocator allocator = new();
                     allocator.AllocateMemory(GB, touchMemory);
                 }
 
@@ -231,9 +248,10 @@ namespace FileStress
                         Help();
                         break;
                     case Mode.Mapping:
-                        MappedWriterBase writer = new MappedWriter((int)fileSizeMB, outputFolder, noUnmap, unlock);
+                        MappedWriterBase writer = new MappedWriter((int)fileSizeMB, outputFolder, noUnmap: noUnmap, unlock: unlock, bWrite: bWrite);
                         writer.StartGeneration(nFilesPerSecond);
                         writer.Write();
+
                         CleanFilesOnExit();
                         break;
                     case Mode.FileCreate:
@@ -256,7 +274,7 @@ namespace FileStress
                         readPerfTest.Run();
                         break;
                     case Mode.Flush:
-                        FSCacheFlush flusher = new FSCacheFlush(flushFileFolder, recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
+                        FSCacheFlush flusher = new(flushFileFolder, recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
                         flusher.Flush();
                         break;
                     default:

@@ -16,10 +16,10 @@ namespace FileStress
 
         readonly ConsoleCtrlHandlerDelegate myHandler;
 
-        public static CtrlCHandler Instance = new CtrlCHandler();
-        readonly object myLock = new object();
+        public static CtrlCHandler Instance = new();
+        readonly object myLock = new();
 
-        List<WeakReference<Action>> myCallbacks = new List<WeakReference<Action>>();
+        List<WeakReference<Action>> myCallbacks = new();
 
         [DllImport("Kernel32")]
         private static extern bool SetConsoleCtrlHandler(ConsoleCtrlHandlerDelegate handler, bool add);
