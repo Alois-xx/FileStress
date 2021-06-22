@@ -13,6 +13,16 @@ namespace FileStress
         [DllImport("kernel32.dll", SetLastError = true, ExactSpelling = true)]
         static extern IntPtr VirtualAllocEx(IntPtr hProcess, IntPtr lpAddress, UIntPtr dwSize, AllocationType flAllocationType, MemoryProtection flProtect);
 
+        [DllImport("kernel32.dll", SetLastError = true, ExactSpelling = true)]
+        static extern bool VirtualFreeEx(IntPtr hProcess, IntPtr lpAddress, int dwSize, FreeType dwFreeType);
+
+        [Flags]
+        public enum FreeType
+        {
+            Decommit = 0x4000,
+            Release = 0x8000,
+        }
+
         [Flags]
         public enum AllocationType
         {
@@ -68,6 +78,43 @@ namespace FileStress
                 }
                 Console.WriteLine("Touching memory done");
             }
+        }
+
+        unsafe void Touch(IntPtr ptr, int size)
+        {
+            byte* p = (byte*)ptr.ToPointer();
+            byte* start = (byte*)ptr.ToPointer();
+            for (; p < start + (size); p += 4096)
+            {
+                *p = 1;
+            }
+        }
+
+        internal void AllocateInLoop(int virtualAllocBytes, int nAllocs)
+        {
+            List<IntPtr> allocations = new(nAllocs);
+            var processHandle = Process.GetCurrentProcess().Handle;
+            var sw = Stopwatch.StartNew();
+            for(int i=0;i<nAllocs;i++)
+            {
+                IntPtr allocPtr = VirtualAllocEx(processHandle, IntPtr.Zero, new UIntPtr((uint)virtualAllocBytes), AllocationType.Commit, MemoryProtection.ReadWrite);
+                if( allocPtr == IntPtr.Zero )
+                {
+                    Console.WriteLine("Allocation did fail");
+                    break;
+                }
+                allocations.Add(allocPtr);
+                Touch(allocPtr, virtualAllocBytes);
+            }
+            sw.Stop();
+            Console.WriteLine($"Did allocate {nAllocs} x {virtualAllocBytes} bytes = {nAllocs*(long)virtualAllocBytes/(1024*1024):N0} MB in {sw.Elapsed.TotalSeconds:F2}s");
+            sw = Stopwatch.StartNew();
+            foreach(IntPtr ptr in allocations)
+            {
+                VirtualFreeEx(processHandle, ptr, 0, FreeType.Release);
+            }
+            sw.Stop();
+            Console.WriteLine($"Released allocated memory in {sw.Elapsed.TotalSeconds:F2}s");
         }
     }
 }

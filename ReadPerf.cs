@@ -33,30 +33,25 @@ namespace FileStress
         public void Run()
         {
             ulong totalBytesRead = 0;
-            int lastReadBytes = 0;
-
             ulong gbRead = 0;
-            ulong currentGBRead = 0;
             ulong lastChunckTotalBytesRead = 0;
 
 
             long start = Stopwatch.GetTimestamp();
             long sliceStart = Stopwatch.GetTimestamp();
-
-            long current = 0;
-
-            foreach(var stream in myFiles)
+            foreach (var stream in myFiles)
             {
-                while( (lastReadBytes = stream.Read(myBuffer, 0, myReadBufferSizeInBytes)) != 0 )
+                int lastReadBytes;
+                while ((lastReadBytes = stream.Read(myBuffer, 0, myReadBufferSizeInBytes)) != 0)
                 {
-                    totalBytesRead += (ulong) lastReadBytes;
-                    currentGBRead = totalBytesRead / GiB;
-                    if(gbRead != currentGBRead)
+                    totalBytesRead += (ulong)lastReadBytes;
+                    ulong currentGBRead = totalBytesRead / GiB;
+                    if (gbRead != currentGBRead)
                     {
                         gbRead = currentGBRead;
-                        current = Stopwatch.GetTimestamp();
+                        long current = Stopwatch.GetTimestamp();
                         double durationIns = GetTimeIns(sliceStart, current);
-                        Console.WriteLine($"Current Read Perf since Last {(totalBytesRead- lastChunckTotalBytesRead) / MB} MB {( (totalBytesRead- lastChunckTotalBytesRead) / MB) / durationIns:F0} MB/s Current File: {stream.Name}");
+                        Console.WriteLine($"Current Read Perf since Last {(totalBytesRead - lastChunckTotalBytesRead) / MB} MB {((totalBytesRead - lastChunckTotalBytesRead) / MB) / durationIns:F0} MB/s Current File: {stream.Name}");
                         sliceStart = Stopwatch.GetTimestamp();
                         lastChunckTotalBytesRead = totalBytesRead;
                     }

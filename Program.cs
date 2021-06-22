@@ -13,7 +13,7 @@ namespace FileStress
 
         static readonly string HelpStr =
            $"FileStress v{FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion}" + Environment.NewLine +
-            " FileStress [-throughput dd [-keepFiles] [-nthreads nn] [-filesizemb dd] [-norandom]] [-readperf -readdir xxxx]] [-map [dd] [-nounmap] [-unlock] [-nowrite] [-filesizemb dd] [-keepFiles]] [-flush fileorDir [-recursive]] [-filecreate [-keepFiles]] [-touchgb dd] [-committgb dd] [c:] [d:] [e:] [f:]..." + Environment.NewLine +
+            " FileStress [-throughput dd [-keepFiles] [-nthreads nn] [-filesizemb dd] [-norandom]] [-readperf -readdir xxxx]] [-map [dd] [-nounmap] [-unlock] [-nowrite] [-filesizemb dd] [-keepFiles]] [-flush fileorDir [-recursive]] [-filecreate [-keepFiles]] [-virtuallloc dd [-n dd2]] [-touchgb dd] [-committgb dd] [c:] [d:] [e:] [f:]..." + Environment.NewLine +
            $"  -throughput dd    Test drive thoughput for dd minutes by writing {DefaultSizeSizeMB} MB files from two threads to \\{FolderName}." + Environment.NewLine +
             "              dd    dd is the runtime of the test in minutes. If the disk becomes full during the test it will delete the generated files and continue until the configured runtime is reached." + Environment.NewLine +
             "                    You can also use fractions of minutes to test a short run. E.g. -throughput 0.1" + Environment.NewLine +
@@ -33,6 +33,7 @@ namespace FileStress
             "      -recursive    If used then all files below that directory file also be flushed" + Environment.NewLine +
            $"  -filecreate       File Creation Test which will create 20K files in the folder \\{FolderName} on the target drive" + Environment.NewLine +
             "     -keepFiles     Do not deleted created temporary files on exit. This way you can test e.g. NTFS Directory traversal performance with hundreds of thousands of files with subsequent calls." + Environment.NewLine +
+            " -virtualalloc dd   Allocate and free dd bytes -N dd2 times. This is useful to check allocation performance in virtual environments. Especially nested " + Environment.NewLine + 
             " -touchgb   dd      Commit and touch dd GB of memory before other tests start" + Environment.NewLine +
             " -committgb dd      Commit but do not touch memory before other tests start" + Environment.NewLine +
             " -waitforenter      Wait for an enter press before exiting. That way you can create several GB sized allocations which can be released later interactivly from the shell." + Environment.NewLine +
@@ -55,6 +56,7 @@ namespace FileStress
             FileCreate,
             Throughput,
             Allocate,
+            VirtualAlloc,
             Flush,
             ReadPerf,
         }
@@ -93,6 +95,10 @@ namespace FileStress
             bool touchMemory = false;
             bool waitForExit = false;
             bool deleteTempFilesOnExit = true;
+
+            // VirtualAlloc
+            int virtualAllocBytes = 0;
+            int nAllocs = 0;
             
 
             void CleanFilesOnExit()
@@ -139,6 +145,13 @@ namespace FileStress
                         break;
                     case "-committgb":
                         GB = NextArgumentOrDefault(qargs, 0);
+                        break;
+                    case "-virtualalloc":
+                        mode = Mode.VirtualAlloc;
+                        virtualAllocBytes = NextArgumentOrDefault(qargs, 0);
+                        break;
+                    case "-n":
+                        nAllocs = NextArgumentOrDefault(qargs, 0);
                         break;
                     case "-waitforenter":
                         waitForExit = true;
@@ -244,6 +257,10 @@ namespace FileStress
                     case Mode.Allocate: // allocation is done before other commands
                         Console.WriteLine("Allocation test completed");
                         break;
+                    case Mode.VirtualAlloc:
+                        Allocator allocator = new();
+                        allocator.AllocateInLoop(virtualAllocBytes, nAllocs);
+                        break;
                     case Mode.Help:
                         Help();
                         break;
@@ -336,6 +353,18 @@ namespace FileStress
             else if( typeof(T) == typeof(int) )
             {
                 if (int.TryParse(str, out int parsedNr))
+                {
+                    lret = (T)(object)parsedNr;
+                }
+                else
+                {
+                    success = false;
+                    lret = defaultNr;
+                }
+            }
+            else if( typeof(T) == typeof(long))
+            {
+                if( long.TryParse(str, out long parsedNr))
                 {
                     lret = (T)(object)parsedNr;
                 }

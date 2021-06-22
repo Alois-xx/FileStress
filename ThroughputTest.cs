@@ -148,12 +148,10 @@ namespace FileStress
 
         void MBPerSecondWriter()
         {
-            long prevMB = 0;
-
-            while(!myToken.IsCancellationRequested)
+            while (!myToken.IsCancellationRequested)
             {
                 Thread.Sleep(10_000);
-                prevMB = Interlocked.Exchange(ref myPreviousMBWritten, myTotalMBWritten);
+                long prevMB = Interlocked.Exchange(ref myPreviousMBWritten, myTotalMBWritten);
                 if (myFileDeletionRunning) // ignore measured values while file deletion is running and do not update the myMegaBytesPerSeconds10s value
                 {
                     continue;
